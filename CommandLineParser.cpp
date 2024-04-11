@@ -5,6 +5,7 @@
 #define INPUT_CODE_CANCEL 0x3
 #define INPUT_CODE_BACKSPACE 0x8
 #define INPUT_CODE_TAB 0x9
+#define INPUT_CODE_ESC 0x1B
 
 #define ESCAPE_CODE_CLEAR "\033c"
 #define ESCAPE_CODE_BACKSAPCE "\x7f"
@@ -103,6 +104,22 @@ void CommandLineParser::run()
                 }
             }
             hasPrevTab = true;
+            return;
+        }
+        else if (ch == INPUT_CODE_ESC)
+        {
+            delay(1);
+            if (Serial.peek() == '[')
+            {
+                Serial.read();
+                delay(1);
+                char ch = Serial.peek();
+                // Arrow keys
+                if (ch == 'D' || ch == 'C' || ch == 'A' || ch == 'B')
+                {
+                    Serial.read();
+                }
+            }
             return;
         }
         else if (isSeparatorCharacter(ch))
