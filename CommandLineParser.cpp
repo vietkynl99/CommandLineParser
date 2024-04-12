@@ -12,26 +12,21 @@
 
 #define DEBUG_SHOW_UNKNOWN_CODE 0
 
-typedef struct
-{
-    String name;
-    CommandLineParser::Callback callback;
-} Command;
-
-Vector<Command> commandList;
+Vector<Command> CommandLineParser::commandList;
 
 void CommandLineParser::init()
 {
-    install("clear", onCommandClearScreen);
-    install("help", onCommandHelp);
+    install("clear", onCommandClearScreen, "clear\t: clear screen");
+    install("help", onCommandHelp, "help\t: show available commands\r\nhelp [command]\t: show command's description");
 }
 
-bool CommandLineParser::install(String name, Callback callback)
+bool CommandLineParser::install(String name, Callback callback, String description)
 {
     trim(name);
-    if (name.indexOf(' ') < 0 && !hasCommand(name))
+    if (isSingleName(name) && !hasCommand(name))
     {
-        Command command{name, callback};
+        trim(description);
+        Command command{name, callback, description};
         commandList.push_back(command);
         return true;
     }
@@ -40,7 +35,6 @@ bool CommandLineParser::install(String name, Callback callback)
 
 void CommandLineParser::run()
 {
-    static String command = "", params = "";
     static String inputStr = "";
     static bool handled = true;
     static bool hasPrevTab = false;
@@ -75,7 +69,7 @@ void CommandLineParser::run()
         {
             String name = inputStr;
             trim(name);
-            if (name.indexOf(' ') < 0)
+            if (isSingleName(name))
             {
                 Vector<String> list = getCommandList(name);
                 if (list.size() > 0)
@@ -155,29 +149,35 @@ void CommandLineParser::run()
         return;
     }
 
+    String commandName = "", commandParams = "";
     int spaceIdx = inputStr.indexOf(' ');
     if (spaceIdx > 0 && spaceIdx < inputStr.length() - 1)
     {
-        command = inputStr.substring(0, spaceIdx);
-        params = inputStr.substring(spaceIdx + 1);
-        trim(command);
-        trim(params);
+        commandName = inputStr.substring(0, spaceIdx);
+        commandParams = inputStr.substring(spaceIdx + 1);
+        trim(commandName);
+        trim(commandParams);
     }
     else
     {
-        command = inputStr;
-        params = "";
+        commandName = inputStr;
+        commandParams = "";
     }
 
     for (int i = 0; i < commandList.size(); i++)
     {
-        if (commandList.at(i).name.equals(command))
+        Command command = commandList.at(i);
+        if (command.name.equals(commandName))
         {
-            commandList.at(i).callback(params);
+            if (!command.callback(commandParams))
+            {
+                Serial.println("Invalid usage of command '" + command.name + "'");
+                Serial.println("Show command's description: help " + command.name);
+            }
             return;
         }
     }
-    Serial.println("Unknown command '" + command + "'");
+    Serial.println("Unknown command '" + commandName + "'");
 }
 
 bool CommandLineParser::isSeparatorCharacter(char ch)
@@ -200,6 +200,11 @@ void CommandLineParser::trim(String &str)
     {
         str = str.substring(0, str.length() - 1);
     }
+}
+
+bool CommandLineParser::isSingleName(const String &name)
+{
+    return name.indexOf(' ') < 0;
 }
 
 Vector<String> CommandLineParser::getCommandList(String prefix)
@@ -276,12 +281,55 @@ bool CommandLineParser::hasCommand(const String &name)
     return false;
 }
 
-void CommandLineParser::onCommandClearScreen(String params)
+bool CommandLineParser::getCommandByName(Command &command, String name)
 {
-    Serial.print(ESCAPE_CODE_CLEAR);
+    for (int i = 0; i < commandList.size(); i++)
+    {
+        if (commandList.at(i).name.equals(name))
+        {
+            command = commandList.at(i);
+            return true;
+        }
+    }
+    return false;
 }
 
-void CommandLineParser::onCommandHelp(String params)
+bool CommandLineParser::onCommandClearScreen(String params)
 {
-    Serial.println(vector2String(getCommandList()));
+    if (params.length() > 0)
+    {
+        return false;
+    }
+    Serial.print(ESCAPE_CODE_CLEAR);
+    return true;
+}
+
+bool CommandLineParser::onCommandHelp(String commandName)
+{
+    if (!isSingleName(commandName))
+    {
+        return false;
+    }
+
+    if (commandName.length() == 0)
+    {
+        Serial.print(F("Available commands: "));
+        Serial.println(vector2String(getCommandList()));
+        Serial.println(F("Show command's description: help [command]"));
+        return true;
+    }
+
+    Command command;
+    if (!getCommandByName(command, commandName))
+    {
+        Serial.println("Unknown command: " + commandName);
+        return true;
+    }
+    if (command.description.length() == 0)
+    {
+        Serial.println("Command '" + commandName + "' has no description");
+        return true;
+    }
+    Serial.println(command.description);
+    return true;
 }

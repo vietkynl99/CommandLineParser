@@ -5,9 +5,10 @@
 
 #include <CommandLineParser.h>
 
-void testFunc(String params)
+bool testFunc(String params)
 {
 	Serial.println("testFunc: " + params);
+	return true;
 }
 
 void setup()
