@@ -29,8 +29,8 @@ private:
     static bool isSingleName(const String &name);
 
     static Vector<String> getCommandList(String prefix = "");
-    static String vector2String(const Vector<String> &Vector);
-    static String getCommonName(const Vector<String> &nameList);
+    static String vector2String(Vector<String> &vector);
+    static String getCommonName(Vector<String> &nameList);
     static bool hasCommand(const String &name);
     static bool getCommandByName(Command &command, String name);
 

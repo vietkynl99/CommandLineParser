@@ -220,13 +220,13 @@ Vector<String> CommandLineParser::getCommandList(String prefix)
     return result;
 }
 
-String CommandLineParser::vector2String(const Vector<String> &Vector)
+String CommandLineParser::vector2String(Vector<String> &vector)
 {
     String result = "";
-    for (int i = 0; i < Vector.size(); i++)
+    for (int i = 0; i < vector.size(); i++)
     {
-        result += Vector.at(i);
-        if (i != Vector.size() - 1)
+        result += vector.at(i);
+        if (i != vector.size() - 1)
         {
             result += " ";
         }
@@ -234,7 +234,7 @@ String CommandLineParser::vector2String(const Vector<String> &Vector)
     return result;
 }
 
-String CommandLineParser::getCommonName(const Vector<String> &nameList)
+String CommandLineParser::getCommonName(Vector<String> &nameList)
 {
     if (nameList.size() == 0)
     {
@@ -313,8 +313,9 @@ bool CommandLineParser::onCommandHelp(String commandName)
 
     if (commandName.length() == 0)
     {
+        Vector<String> commands = getCommandList();
         Serial.print(F("Available commands: "));
-        Serial.println(vector2String(getCommandList()));
+        Serial.println(vector2String(commands));
         Serial.println(F("Show command's description: help [command]"));
         return true;
     }
