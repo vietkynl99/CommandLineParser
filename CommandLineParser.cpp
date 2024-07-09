@@ -228,7 +228,7 @@ String CommandLineParser::vector2String(Vector<String> &vector)
         result += vector.at(i);
         if (i != vector.size() - 1)
         {
-            result += " ";
+            result += ", ";
         }
     }
     return result;
