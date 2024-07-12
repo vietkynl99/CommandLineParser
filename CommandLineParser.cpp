@@ -68,11 +68,12 @@ void CommandLineParser::run()
         else if (ch == INPUT_CODE_TAB)
         {
             String name = inputStr;
+            bool endWithSpace = name[name.length() - 1] == ' ';
             trim(name);
             if (isSingleName(name))
             {
                 Vector<String> list = getCommandList(name);
-                if (list.size() > 0)
+                if (list.size() > 0 && !(list.size() == 1 && name.equals(list.at(0))))
                 {
                     String substring = getCommonName(list);
                     if (substring.length() > 0)
@@ -85,6 +86,10 @@ void CommandLineParser::run()
                             {
                                 inputStr += suffix;
                                 Serial.print(suffix);
+                                if (list.size() == 1 && !endWithSpace)
+                                {
+                                    Serial.print(" ");
+                                }
                             }
                             else if (hasPrevTab)
                             {
