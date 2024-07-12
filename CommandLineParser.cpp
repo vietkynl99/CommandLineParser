@@ -88,7 +88,8 @@ void CommandLineParser::run()
                                 Serial.print(suffix);
                                 if (list.size() == 1 && !endWithSpace)
                                 {
-                                    Serial.print(" ");
+                                    inputStr += ' ';
+                                    Serial.print(' ');
                                 }
                             }
                             else if (hasPrevTab)
