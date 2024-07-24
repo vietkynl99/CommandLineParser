@@ -12,7 +12,7 @@
 
 #define DEBUG_SHOW_UNKNOWN_CODE 0
 
-Vector<Command> CommandLineParser::commandList;
+VVector<Command> CommandLineParser::commandList;
 
 void CommandLineParser::init()
 {
@@ -72,7 +72,7 @@ void CommandLineParser::run()
             trim(name);
             if (isSingleName(name))
             {
-                Vector<String> list = getCommandList(name);
+                VVector<String> list = getCommandList(name);
                 if (list.size() > 0 && !(list.size() == 1 && name.equals(list.at(0))))
                 {
                     String substring = getCommonName(list);
@@ -213,9 +213,9 @@ bool CommandLineParser::isSingleName(const String &name)
     return name.indexOf(' ') < 0;
 }
 
-Vector<String> CommandLineParser::getCommandList(String prefix)
+VVector<String> CommandLineParser::getCommandList(String prefix)
 {
-    Vector<String> result;
+    VVector<String> result;
     for (int i = 0; i < commandList.size(); i++)
     {
         if (prefix.length() == 0 || commandList.at(i).name.startsWith(prefix))
@@ -226,7 +226,7 @@ Vector<String> CommandLineParser::getCommandList(String prefix)
     return result;
 }
 
-String CommandLineParser::vector2String(Vector<String> &vector)
+String CommandLineParser::vector2String(VVector<String> &vector)
 {
     String result = "";
     for (int i = 0; i < vector.size(); i++)
@@ -240,7 +240,7 @@ String CommandLineParser::vector2String(Vector<String> &vector)
     return result;
 }
 
-String CommandLineParser::getCommonName(Vector<String> &nameList)
+String CommandLineParser::getCommonName(VVector<String> &nameList)
 {
     if (nameList.size() == 0)
     {
@@ -319,7 +319,7 @@ bool CommandLineParser::onCommandHelp(String commandName)
 
     if (commandName.length() == 0)
     {
-        Vector<String> commands = getCommandList();
+        VVector<String> commands = getCommandList();
         Serial.print(F("Available commands: "));
         Serial.println(vector2String(commands));
         Serial.println(F("Show command's description: help [command]"));
