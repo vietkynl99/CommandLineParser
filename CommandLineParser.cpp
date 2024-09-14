@@ -12,10 +12,15 @@
 
 #define DEBUG_SHOW_UNKNOWN_CODE 0
 
+Stream *CommandLineParser::mStream = &Serial;
 VVector<Command> CommandLineParser::commandList;
 
-void CommandLineParser::init()
+void CommandLineParser::init(Stream *stream)
 {
+    if (stream)
+    {
+        mStream = stream;
+    }
     install("clear", onCommandClearScreen, "clear\t: clear screen");
     install("help", onCommandHelp, "help\t: show available commands\r\nhelp [command]\t: show command's description");
 }
@@ -44,16 +49,16 @@ void CommandLineParser::run()
         handled = false;
         hasPrevTab = false;
         inputStr = "";
-        Serial.print(COMMAND_HEADER);
+        mStream->print(COMMAND_HEADER);
     }
 
-    while (Serial.available())
+    while (mStream->available())
     {
-        char ch = Serial.read();
+        char ch = mStream->read();
         if (ch == INPUT_CODE_CANCEL)
         {
             handled = true;
-            Serial.println("^C");
+            mStream->println("^C");
             return;
         }
         else if (ch == INPUT_CODE_BACKSPACE)
@@ -61,7 +66,7 @@ void CommandLineParser::run()
             if (inputStr.length() > 0)
             {
                 inputStr.remove(inputStr.length() - 1);
-                Serial.print(ESCAPE_CODE_BACKSAPCE);
+                mStream->print(ESCAPE_CODE_BACKSAPCE);
             }
             return;
         }
@@ -85,19 +90,19 @@ void CommandLineParser::run()
                             if (suffix.length() > 0)
                             {
                                 inputStr += suffix;
-                                Serial.print(suffix);
+                                mStream->print(suffix);
                                 if (list.size() == 1 && !endWithSpace)
                                 {
                                     inputStr += ' ';
-                                    Serial.print(' ');
+                                    mStream->print(' ');
                                 }
                             }
                             else if (hasPrevTab)
                             {
-                                Serial.println();
-                                Serial.print(" " + vector2String(list));
-                                Serial.println();
-                                Serial.print(COMMAND_HEADER + inputStr);
+                                mStream->println();
+                                mStream->print(" " + vector2String(list));
+                                mStream->println();
+                                mStream->print(COMMAND_HEADER + inputStr);
                             }
                         }
                     }
@@ -109,15 +114,15 @@ void CommandLineParser::run()
         else if (ch == INPUT_CODE_ESC)
         {
             delay(1);
-            if (Serial.peek() == '[')
+            if (mStream->peek() == '[')
             {
-                Serial.read();
+                mStream->read();
                 delay(1);
-                char ch = Serial.peek();
+                char ch = mStream->peek();
                 // Arrow keys
                 if (ch == 'D' || ch == 'C' || ch == 'A' || ch == 'B')
                 {
-                    Serial.read();
+                    mStream->read();
                 }
             }
             return;
@@ -125,20 +130,20 @@ void CommandLineParser::run()
         else if (isSeparatorCharacter(ch))
         {
             handled = true;
-            Serial.println();
+            mStream->println();
             break;
         }
         else if (isAcceptedCharacter(ch))
         {
             inputStr += ch;
-            Serial.print(ch);
+            mStream->print(ch);
         }
 #if DEBUG_SHOW_UNKNOWN_CODE
         else
         {
-            Serial.print("{0x");
-            Serial.print(ch, HEX);
-            Serial.print("}");
+            mStream->print("{0x");
+            mStream->print(ch, HEX);
+            mStream->print("}");
         }
 #endif
         // delay(1);
@@ -177,13 +182,13 @@ void CommandLineParser::run()
         {
             if (!command.callback(commandParams))
             {
-                Serial.println("Invalid usage of command '" + command.name + "'");
-                Serial.println("Show command's description: help " + command.name);
+                mStream->println("Invalid usage of command '" + command.name + "'");
+                mStream->println("Show command's description: help " + command.name);
             }
             return;
         }
     }
-    Serial.println("Unknown command '" + commandName + "'");
+    mStream->println("Unknown command '" + commandName + "'");
 }
 
 bool CommandLineParser::isSeparatorCharacter(char ch)
@@ -306,7 +311,7 @@ bool CommandLineParser::onCommandClearScreen(String params)
     {
         return false;
     }
-    Serial.print(ESCAPE_CODE_CLEAR);
+    mStream->print(ESCAPE_CODE_CLEAR);
     return true;
 }
 
@@ -320,23 +325,23 @@ bool CommandLineParser::onCommandHelp(String commandName)
     if (commandName.length() == 0)
     {
         VVector<String> commands = getCommandList();
-        Serial.print(F("Available commands: "));
-        Serial.println(vector2String(commands));
-        Serial.println(F("Show command's description: help [command]"));
+        mStream->print(F("Available commands: "));
+        mStream->println(vector2String(commands));
+        mStream->println(F("Show command's description: help [command]"));
         return true;
     }
 
     Command command;
     if (!getCommandByName(command, commandName))
     {
-        Serial.println("Unknown command: " + commandName);
+        mStream->println("Unknown command: " + commandName);
         return true;
     }
     if (command.description.length() == 0)
     {
-        Serial.println("Command '" + commandName + "' has no description");
+        mStream->println("Command '" + commandName + "' has no description");
         return true;
     }
-    Serial.println(command.description);
+    mStream->println(command.description);
     return true;
 }

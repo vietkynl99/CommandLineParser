@@ -15,10 +15,11 @@ typedef struct
 class CommandLineParser
 {
 private:
+    static Stream *mStream;
     static VVector<Command> commandList;
 
 public:
-    static void init();
+    static void init(Stream *stream = nullptr);
     static bool install(String name, Callback callback, String description = "");
     static void run();
 
