@@ -22,7 +22,7 @@ public:
     static void init(Stream *stream = nullptr);
     static bool install(String name, Callback callback, String description = "");
     static void run();
-    static void process(Stream *stream, String &inputStr);
+    static String process(Stream *stream, String &inputStr);
 
 private:
     static bool isSeparatorCharacter(char ch);

@@ -155,12 +155,13 @@ void CommandLineParser::run()
     }
 }
 
-void CommandLineParser::process(Stream *stream, String &inputStr)
+String CommandLineParser::process(Stream *stream, String &inputStr)
 {
+    String message = "";
     trim(inputStr);
     if (inputStr.length() == 0)
     {
-        return;
+        return message;
     }
 
     String commandName = "", commandParams = "";
@@ -185,13 +186,21 @@ void CommandLineParser::process(Stream *stream, String &inputStr)
         {
             if (!command.callback(commandParams))
             {
-                stream->println("Invalid usage of command '" + command.name + "'");
-                stream->println("Show command's description: help " + command.name);
+                message = "Invalid usage of command '" + command.name + "'\nShow command's description: help " + command.name;
+                if (stream)
+                {
+                    stream->println(message);
+                }
             }
-            return;
+            return message;
         }
     }
-    stream->println("Unknown command '" + commandName + "'");
+    message = "Unknown command '" + commandName + "'";
+    if (stream)
+    {
+        stream->println(message);
+    }
+    return message;
 }
 
 bool CommandLineParser::isSeparatorCharacter(char ch)
