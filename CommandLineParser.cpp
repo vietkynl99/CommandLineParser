@@ -14,6 +14,9 @@
 
 Stream *CommandLineParser::mStream = &Serial;
 VVector<Command> CommandLineParser::commandList;
+String CommandLineParser::mInputStr = "";
+bool CommandLineParser::mHandled = true;
+bool CommandLineParser::mHasPrevTab = false;
 
 void CommandLineParser::init(Stream *stream)
 {
@@ -40,119 +43,114 @@ bool CommandLineParser::install(String name, Callback callback, String descripti
 
 void CommandLineParser::run()
 {
-    static String inputStr = "";
-    static bool handled = true;
-    static bool hasPrevTab = false;
-
-    if (handled)
+    while (mStream->available())
     {
-        handled = false;
-        hasPrevTab = false;
-        inputStr = "";
+        handleByte(mStream->read());
+    }
+}
+
+void CommandLineParser::handleByte(char ch)
+{
+    if (mHandled)
+    {
+        mHandled = false;
+        mHasPrevTab = false;
+        mInputStr = "";
         mStream->print(COMMAND_HEADER);
     }
 
-    while (mStream->available())
+    if (ch == INPUT_CODE_CANCEL)
     {
-        char ch = mStream->read();
-        if (ch == INPUT_CODE_CANCEL)
+        mHandled = true;
+        mStream->println("^C");
+        return;
+    }
+    else if (ch == INPUT_CODE_BACKSPACE)
+    {
+        if (mInputStr.length() > 0)
         {
-            handled = true;
-            mStream->println("^C");
-            return;
+            mInputStr.remove(mInputStr.length() - 1);
+            mStream->print(ESCAPE_CODE_BACKSAPCE);
         }
-        else if (ch == INPUT_CODE_BACKSPACE)
+        return;
+    }
+    else if (ch == INPUT_CODE_TAB)
+    {
+        String name = mInputStr;
+        bool endWithSpace = name[name.length() - 1] == ' ';
+        trim(name);
+        if (isSingleName(name))
         {
-            if (inputStr.length() > 0)
+            VVector<String> list = getCommandList(name);
+            if (list.size() > 0 && !(list.size() == 1 && name.equals(list.at(0))))
             {
-                inputStr.remove(inputStr.length() - 1);
-                mStream->print(ESCAPE_CODE_BACKSAPCE);
-            }
-            return;
-        }
-        else if (ch == INPUT_CODE_TAB)
-        {
-            String name = inputStr;
-            bool endWithSpace = name[name.length() - 1] == ' ';
-            trim(name);
-            if (isSingleName(name))
-            {
-                VVector<String> list = getCommandList(name);
-                if (list.size() > 0 && !(list.size() == 1 && name.equals(list.at(0))))
+                String substring = getCommonName(list);
+                if (substring.length() > 0)
                 {
-                    String substring = getCommonName(list);
-                    if (substring.length() > 0)
+                    int index = substring.indexOf(name);
+                    if (index >= 0)
                     {
-                        int index = substring.indexOf(name);
-                        if (index >= 0)
+                        String suffix = substring.substring(name.length() + index);
+                        if (suffix.length() > 0)
                         {
-                            String suffix = substring.substring(name.length() + index);
-                            if (suffix.length() > 0)
+                            mInputStr += suffix;
+                            mStream->print(suffix);
+                            if (list.size() == 1 && !endWithSpace)
                             {
-                                inputStr += suffix;
-                                mStream->print(suffix);
-                                if (list.size() == 1 && !endWithSpace)
-                                {
-                                    inputStr += ' ';
-                                    mStream->print(' ');
-                                }
+                                mInputStr += ' ';
+                                mStream->print(' ');
                             }
-                            else if (hasPrevTab)
-                            {
-                                mStream->println();
-                                mStream->print(" " + vector2String(list));
-                                mStream->println();
-                                mStream->print(COMMAND_HEADER + inputStr);
-                            }
+                        }
+                        else if (mHasPrevTab)
+                        {
+                            mStream->println();
+                            mStream->print(" " + vector2String(list));
+                            mStream->println();
+                            mStream->print(COMMAND_HEADER + mInputStr);
                         }
                     }
                 }
             }
-            hasPrevTab = true;
-            return;
         }
-        else if (ch == INPUT_CODE_ESC)
+        mHasPrevTab = true;
+        return;
+    }
+    else if (ch == INPUT_CODE_ESC)
+    {
+        delay(1);
+        if (mStream->peek() == '[')
         {
+            mStream->read();
             delay(1);
-            if (mStream->peek() == '[')
+            char ch2 = mStream->peek();
+            // Arrow keys
+            if (ch2 == 'D' || ch2 == 'C' || ch2 == 'A' || ch2 == 'B')
             {
                 mStream->read();
-                delay(1);
-                char ch = mStream->peek();
-                // Arrow keys
-                if (ch == 'D' || ch == 'C' || ch == 'A' || ch == 'B')
-                {
-                    mStream->read();
-                }
             }
-            return;
         }
-        else if (isSeparatorCharacter(ch))
-        {
-            handled = true;
-            mStream->println();
-            break;
-        }
-        else if (isAcceptedCharacter(ch))
-        {
-            inputStr += ch;
-            mStream->print(ch);
-        }
-#if DEBUG_SHOW_UNKNOWN_CODE
-        else
-        {
-            mStream->print("{0x");
-            mStream->print(ch, HEX);
-            mStream->print("}");
-        }
-#endif
-        // delay(1);
+        return;
     }
-
-    if (handled)
+    else if (isSeparatorCharacter(ch))
     {
-        process(mStream, inputStr);
+        mHandled = true;
+        mStream->println();
+        process(mStream, mInputStr);
+        return;
     }
+    else if (isAcceptedCharacter(ch))
+    {
+        mInputStr += ch;
+        mStream->print(ch);
+    }
+#if DEBUG_SHOW_UNKNOWN_CODE
+    else
+    {
+        mStream->print("{0x");
+        mStream->print(ch, HEX);
+        mStream->print("}");
+    }
+#endif
 }
 
 String CommandLineParser::process(Stream *stream, String &inputStr)

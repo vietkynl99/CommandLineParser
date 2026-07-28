@@ -17,11 +17,18 @@ class CommandLineParser
 private:
     static Stream *mStream;
     static VVector<Command> commandList;
+    static String mInputStr;
+    static bool mHandled;
+    static bool mHasPrevTab;
 
 public:
     static void init(Stream *stream = nullptr);
     static bool install(String name, Callback callback, String description = "");
     static void run();
+    // Feeds a single byte through the same line-editor state machine run() drives itself
+    // from Serial - lets a caller intercept other bytes (e.g. a binary framing marker)
+    // before they reach here, while still handling any that make it through this exact way.
+    static void handleByte(char ch);
     static String process(Stream *stream, String &inputStr);
 
 private:
